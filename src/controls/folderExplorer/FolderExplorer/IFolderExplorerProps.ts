@@ -1,5 +1,4 @@
-import { WebPartContext } from '@microsoft/sp-webpart-base';
-import { ExtensionContext } from '@microsoft/sp-extension-base';
+import { BaseComponentContext } from '@microsoft/sp-component-base';
 import { IBreadcrumbItem } from "office-ui-fabric-react/lib/Breadcrumb";
 import { IFolder } from '../../../services/IFolderExplorerService';
 
@@ -8,7 +7,7 @@ export interface IFolderExplorerProps {
   /**
    * Current context
    */
-  context: WebPartContext | ExtensionContext;
+  context: BaseComponentContext;
 
   /**
    * The absolute url of the target site. Only required if not the current site
@@ -45,6 +44,16 @@ export interface IFolderExplorerProps {
    * Hide the filter box
    */
   hiddenFilterBox?: boolean;
+
+  /**
+   * The name of the folder field on which to sort. Name will be used as default. Other examples: Name, TimeCreated, TimeLastModified
+   */
+  orderby?: string;
+
+  /**
+   * If set to true, results will be sorted in ascending order. Otherwise, descending will be used as default
+   */
+  orderAscending?: boolean;
 
   /**
    * Callback function called after a folder is selected

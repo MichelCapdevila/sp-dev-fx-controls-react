@@ -39,7 +39,7 @@ import { ListView, IViewField, SelectionMode, GroupOrder, IGrouping } from "@pnp
   onDrop={this._getDropFiles}
   stickyHeader={true} />
 ```
-- The control provides full text filtering through all the columns. If you want to exectue filtering on the specified columns, you can use syntax : `<ColumndName>`:`<FilterValue>`. Use `':'` as a separator between column name and value. Control support both `'fieldName'` and `'name'` properties of IColumn interface.
+- The control provides full text filtering through all the columns. If you want to execute filtering on the specified columns, you can use syntax : `<ColumndName>`:`<FilterValue>`. Use `':'` as a separator between column name and value. Control support both `'fieldName'` and `'name'` properties of IColumn interface.
 
 - With the `selection` property you can define a method that which gets called when the user selects one or more items in the list view:
 
@@ -84,7 +84,7 @@ The ListView control can be configured with the following properties:
 | Property | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
 | iconFieldName | string | no | Specify the items' property name that defines the file URL path which will be used to show the file icon. This automatically creates a column and renders the file icon. |
-| items | any[]| yes | Items to render in the list view. |
+| items | any[] | no | Items to render in the list view. |
 | viewFields | IViewField[] | no | The fields you want to render in the list view. Check the `IViewField` implementation to see which properties you can define. |
 | compact | boolean | no | Boolean value to indicate if the control should render in compact mode. By default this is set to `false`. |
 | selectionMode | SelectionMode | no | Specify if the items in the list view can be selected and how. Options are: none, single, multi. |
@@ -97,6 +97,7 @@ The ListView control can be configured with the following properties:
 | dragDropFiles | boolean | no | Specify the drag and drop files area option. Default false. |
 | onDrop | file | no | Event handler returns files from drag and drop. |
 | stickyHeader | boolean | no | Specifies if the header of the `ListView`, including search box, is sticky |
+| sortItems | (items: any[], columnName: string, descending: boolean) =&gt; any[] | no | Custom sorting function to handle sorting by column |
 
 The `IViewField` has the following implementation:
 

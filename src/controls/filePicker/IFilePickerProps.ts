@@ -1,7 +1,6 @@
 import { IIconProps } from "office-ui-fabric-react";
 
-import { ExtensionContext } from "@microsoft/sp-extension-base";
-import { WebPartContext } from "@microsoft/sp-webpart-base";
+import { BaseComponentContext } from '@microsoft/sp-component-base';
 
 import { IFilePickerResult } from "./FilePicker.types";
 
@@ -19,26 +18,26 @@ export interface IFilePickerProps {
    * Specifies the icon to be used to display Icon Button.
    */
   buttonIcon?: string;
- /**
-   * Specifies props for icon to be used to display Icon Button.
-   */
+  /**
+    * Specifies props for icon to be used to display Icon Button.
+    */
   buttonIconProps?: IIconProps;
 
 
   /**
    * Handler when the file has been selected
    */
-  onSave:(filePickerResult: IFilePickerResult)=>void;
+  onSave: (filePickerResult: IFilePickerResult[]) => void;
 
   /**
    * Handler when file has been changed.
    */
-  onChange?: (filePickerResult: IFilePickerResult) => void;
+  onChange?: (filePickerResult: IFilePickerResult[]) => void;
 
   /**
    * Current context.
    */
-  context: ExtensionContext |  WebPartContext;
+  context: BaseComponentContext;
 
   /**
    * ClassName to be applied to the opener button element.
@@ -69,6 +68,11 @@ export interface IFilePickerProps {
    * Specifies if the picker button is disabled
    */
   disabled?: boolean;
+
+  /**
+   * Specifies if the picker button is hidden (if hidden, panel visibility can still be controlled with isPanelOpen)
+   */
+  hidden?: boolean;
 
   /**
    * Number of itmes to obtain when executing REST queries. Default 100.
@@ -111,6 +115,11 @@ export interface IFilePickerProps {
   hideLocalUploadTab?: boolean;
 
   /**
+   * Specifies if LocalMultipleUploadTab should be hidden.
+   */
+  hideLocalMultipleUploadTab?: boolean;
+
+  /**
    * Specifies if LinkUploadTab should be hidden.
    */
   hideLinkUploadTab?: boolean;
@@ -137,4 +146,14 @@ export interface IFilePickerProps {
    * Optional additional renderer for Upload tab
    */
   renderCustomUploadTabContent?: (filePickerResult: IFilePickerResult) => JSX.Element | null;
+
+  /**
+   * Optional additional renderer for Multiple Upload tab
+   */
+  renderCustomMultipleUploadTabContent?: (filePickerResult: IFilePickerResult[]) => JSX.Element | null;
+
+  /**
+   * Specifies if Site Pages library to be visible on Sites tab
+   */
+  includePageLibraries?: boolean;
 }

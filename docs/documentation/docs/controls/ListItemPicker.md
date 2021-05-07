@@ -25,6 +25,7 @@ import { ListItemPicker } from '@pnp/spfx-controls-react/lib/ListItemPicker';
                 columnInternalName='Title'
                 keyColumnInternalName='Id'
                 filter="Title eq 'SPFx'"
+                orderBy={"Id desc"}
                 itemLimit={2}
                 onSelectedItem={this.onSelectedItem}
                 context={this.props.context} />
@@ -49,7 +50,7 @@ The `ListItemPicker` control can be configured with the following properties:
 | ---- | ---- | ---- | ---- |
 | columnInternalName | string | yes | InternalName of column to search and get values. |
 | keyColumnInternalName | string | no | InternalName of column to use as the key for the selection. Must be a column with unique values. Default: Id |
-| context | WebPartContext \| ExtensionContext | yes | SPFx web part or extention context |
+| context | BaseComponentContext | yes | SPFx web part or extention context |
 | listId | string | yes | Guid of the list. |
 | itemLimit | number | yes | Number of items which can be selected |
 | onSelectItem | (items: any[]) => void | yes | Callback function which returns the selected items. |
@@ -60,6 +61,7 @@ The `ListItemPicker` control can be configured with the following properties:
 | noResultsFoundText | string | no | The text that should appear when no results are returned. |
 | disabled | boolean | no | Specifies if the control is disabled or not. |
 | filter | string | no | condition to filter list Item, same as $filter ODATA parameter|
+| orderBy | string | no | condition to order by list Item, same as $orderby ODATA parameter|
 | placeholder | string | no | Short text hint to display in empty picker |
 | substringSearch | boolean | no | Specifies if substring search should be used |
 

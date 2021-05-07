@@ -88,7 +88,7 @@ export class IconPicker extends React.Component<IIconPickerProps, IIconPickerSta
               onAbort={this.onAbort}
               data-automation-id={`icon-picker-search`}
               onSearch={debounce(this.onChange, 300)}
-              onChange={debounce(this.onChange, 300)} />
+              onChange={debounce((e, value) => this.onChange(value), 300)} />
             <div className={styles.dialogIconsContainer}>
               {this.renderPanelContent()}
             </div>
@@ -138,7 +138,7 @@ export class IconPicker extends React.Component<IIconPickerProps, IIconPickerSta
   private onChange = (newValue?: string): void => {
     let items: string[];
     if (newValue && newValue.trim().length > 2) {
-      items = this._fluentIconsService.search(newValue); /*IconNames.Icons.filter(item => {
+      items = this._fluentIconsService.search(newValue, this.props.useStartsWithSearch); /*IconNames.Icons.filter(item => {
         return item.toLocaleLowerCase().indexOf(newValue.toLocaleLowerCase()) !== -1;
       });*/
     } else {
@@ -165,7 +165,7 @@ export class IconPicker extends React.Component<IIconPickerProps, IIconPickerSta
         onAbort={this.onAbort}
         data-automation-id={`icon-picker-search`}
         onSearch={debounce(this.onChange, 300)}
-        onChange={debounce(this.onChange, 300)} />
+        onChange={debounce((e, value) => this.onChange(value), 300)} />
       <div className={styles.closeBtnContainer}>{defaultRender!(props)}</div>
     </div>;
   }

@@ -1,14 +1,22 @@
 import * as React from "react";
-
+import {
+  ITag,
+} from "office-ui-fabric-react/lib/Pickers";
+import {
+  Stack,
+} from "office-ui-fabric-react/lib/Stack";
 import {
   Text,
+} from "office-ui-fabric-react/lib/Text";
+import {
   TextField
-} from "office-ui-fabric-react";
+} from "office-ui-fabric-react/lib/TextField";
 import {
   DefaultButton,
   PrimaryButton
 } from "office-ui-fabric-react/lib/components/Button";
-import { DialogType } from "office-ui-fabric-react/lib/components/Dialog";
+import { DialogType, DialogFooter, IDialogContentProps } from "office-ui-fabric-react/lib/components/Dialog";
+import { IModalProps } from "office-ui-fabric-react/lib/Modal";
 import {
   Dropdown,
   IDropdownOption
@@ -24,6 +32,7 @@ import {
   IDocumentCardPreviewProps
 } from "office-ui-fabric-react/lib/DocumentCard";
 import { IIconProps } from "office-ui-fabric-react/lib/Icon";
+import { Spinner, SpinnerSize } from 'office-ui-fabric-react/lib/Spinner';
 import { ImageFit } from "office-ui-fabric-react/lib/Image";
 import { PanelType } from "office-ui-fabric-react/lib/Panel";
 import { mergeStyles } from "office-ui-fabric-react/lib/Styling";
@@ -154,11 +163,19 @@ import {
   UpdateType
 } from "../../../TaxonomyPicker";
 import { WebPartTitle } from "../../../WebPartTitle";
+import { AnimatedDialog } from "../../../AnimatedDialog";
 import styles from "./ControlsTest.module.scss";
 import {
   IControlsTestProps,
   IControlsTestState
 } from "./IControlsTestProps";
+import { MyTeams } from "../../../controls/MyTeams";
+import { TeamPicker } from "../../../TeamPicker";
+import { TeamChannelPicker } from "../../../TeamChannelPicker";
+import {​​ DragDropFiles }​​ from "../../../DragDropFiles";
+import {​​ SitePicker }​​ from "../../../controls/sitePicker/SitePicker";
+
+
 
 // Used to render document card
 /**
@@ -240,6 +257,13 @@ const sampleItems = [
 export default class ControlsTest extends React.Component<IControlsTestProps, IControlsTestState> {
   private taxService: SPTermStorePickerService = null;
   private richTextValue: string = null;
+
+
+  private onSelectedChannel = (teamsId: string, channelId: string) => {
+    alert(`TeamId: ${teamsId}\n ChannelId: ${channelId}\n`);
+    console.log("TeamsId", teamsId);
+    console.log("ChannelId", channelId);
+  }
 
   /**
    * Static array for carousel control example.
@@ -408,7 +432,15 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
       canMovePrev: false,
       canMoveNext: true,
       currentCarouselElement: this.carouselElements[0],
-      comboBoxListItemPickerListId: '0ffa51d7-4ad1-4f04-8cfe-98209905d6da'
+      comboBoxListItemPickerListId: '0ffa51d7-4ad1-4f04-8cfe-98209905d6da',
+      treeViewSelectedKeys: ['gc1', 'gc3'],
+      showAnimatedDialog: false,
+      showCustomisedAnimatedDialog: false,
+      showSuccessDialog: false,
+      showErrorDialog: false,
+      selectedTeam: [],
+      selectedTeamChannels: [],
+
     };
 
     this._onIconSizeChange = this._onIconSizeChange.bind(this);
@@ -474,7 +506,8 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
   */
   private _getDropFiles = (files) => {
     for (var i = 0; i < files.length; i++) {
-      console.log(files[i].name);
+      console.log("File name: " + files[i].name);
+      console.log("Folder Path: " + files[i].fullPath);
     }
   }
 
@@ -612,11 +645,14 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
     }, 500);
   }
 
-  private _onFilePickerSave = async (filePickerResult: IFilePickerResult) => {
-    this.setState({ filePickerResult });
-    if (filePickerResult) {
-      const fileResultContent = await filePickerResult.downloadFileContent();
-      console.log(fileResultContent);
+  private _onFilePickerSave = async (filePickerResult: IFilePickerResult[]) => {
+    this.setState({ filePickerResult: filePickerResult });
+    if (filePickerResult && filePickerResult.length > 0) {
+      for (var i = 0; i < filePickerResult.length; i++) {
+        const item = filePickerResult[i];
+        const fileResultContent = await item.downloadFileContent();
+        console.log(fileResultContent);
+      }
     }
   }
 
@@ -763,6 +799,45 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
       },
     ];
 
+    /**
+   * Animated dialog related
+   */
+
+    const animatedDialogContentProps: IDialogContentProps = {
+      type: DialogType.normal,
+      title: 'Animated Dialog',
+      subText: 'Do you like the animated dialog?',
+    };
+
+    const animatedModalProps: IModalProps = {
+      isDarkOverlay: true
+    };
+
+    const customizedAnimatedModalProps: IModalProps = {
+      isDarkOverlay: true,
+      containerClassName: `${styles.dialogContainer}`
+    };
+
+    const customizedAnimatedDialogContentProps: IDialogContentProps = {
+      type: DialogType.normal,
+      title: 'Animated Dialog'
+    };
+
+    const successDialogContentProps: IDialogContentProps = {
+      type: DialogType.normal,
+      title: 'Good answer!'
+    };
+
+    const errorDialogContentProps: IDialogContentProps = {
+      type: DialogType.normal,
+      title: 'Uh oh!'
+    };
+
+    const timeout = (ms: number): Promise<void> => {
+      return new Promise((resolve, reject) => setTimeout(resolve, ms));
+    };
+
+
     return (
       <div className={styles.controlsTest}>
         <WebPartTitle displayMode={this.props.displayMode}
@@ -772,33 +847,75 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             <Link href="https://pnp.github.io/sp-dev-fx-controls-react/">See all</Link>
           } />
 
+<Stack styles={{ root: { marginBottom: 200 } }}>
+          <MyTeams
+            title="My Teams"
+            webPartContext={this.props.context}
+            themeVariant={this.props.themeVariant}
+            enablePersonCardInteraction={true}
+            onSelectedChannel={this.onSelectedChannel}
+          />
+        </Stack>
+        <Stack
+          styles={{ root: { margin: "10px 10px 100px 10px" } }}
+          tokens={{ childrenGap: 10 }}
+        >
+          <TeamPicker
+            label="Select Team"
+            themeVariant={this.props.themeVariant}
+            selectedTeams={this.state.selectedTeam}
+            appcontext={this.props.context}
+            itemLimit={1}
+            onSelectedTeams={(tagList: ITag[]) => {
+              this.setState({ selectedTeamChannels: [] });
+              this.setState({ selectedTeam: tagList });
+              console.log(tagList);
+            }}
+          />
+          {this.state?.selectedTeam && this.state?.selectedTeam.length > 0 && (
+            <>
+              <TeamChannelPicker
+                label="Select Team Channel"
+                themeVariant={this.props.themeVariant}
+                selectedChannels={this.state.selectedTeamChannels}
+                teamId={this.state.selectedTeam[0].key}
+                appcontext={this.props.context}
+                onSelectedChannels={(tagList: ITag[]) => {
+                  this.setState({ selectedTeamChannels: tagList });
+                  console.log(tagList);
+                }}
+              />
+            </>
+          )}
+        </Stack>
+
 
         <AccessibleAccordion allowZeroExpanded>
-        <AccordionItem key={"Headding 1"}>
-          <AccordionItemHeading>
-            <AccordionItemButton>{"Accordion Item Heading 1"}</AccordionItemButton>
-          </AccordionItemHeading>
-          <AccordionItemPanel>
-           <div style={{margin: 20}}>
-           <h2>Content Heading 1</h2>
-            <Text variant={"mediumPlus"}>Text sample  </Text>
+          <AccordionItem key={"Headding 1"}>
+            <AccordionItemHeading>
+              <AccordionItemButton>{"Accordion Item Heading 1"}</AccordionItemButton>
+            </AccordionItemHeading>
+            <AccordionItemPanel>
+              <div style={{ margin: 20 }}>
+                <h2>Content Heading 1</h2>
+                <Text variant={"mediumPlus"}>Text sample  </Text>
 
-            </div>
-          </AccordionItemPanel>
-        </AccordionItem>
-        <AccordionItem key={"Headding 2"}>
-          <AccordionItemHeading>
-            <AccordionItemButton>Accordion Item Heading 2</AccordionItemButton>
-          </AccordionItemHeading>
-          <AccordionItemPanel>
-            <div style={{margin: 20}}>
-            <h2>Content Heading 2</h2>
-            <Text variant={"mediumPlus"}>Text </Text>
-            <TextField></TextField>
-            </div>
-          </AccordionItemPanel>
-        </AccordionItem>
-      </AccessibleAccordion>
+              </div>
+            </AccordionItemPanel>
+          </AccordionItem>
+          <AccordionItem key={"Headding 2"}>
+            <AccordionItemHeading>
+              <AccordionItemButton>Accordion Item Heading 2</AccordionItemButton>
+            </AccordionItemHeading>
+            <AccordionItemPanel>
+              <div style={{ margin: 20 }}>
+                <h2>Content Heading 2</h2>
+                <Text variant={"mediumPlus"}>Text </Text>
+                <TextField></TextField>
+              </div>
+            </AccordionItemPanel>
+          </AccordionItem>
+        </AccessibleAccordion>
 
 
 
@@ -1058,7 +1175,14 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
           principalTypes={[PrincipalType.User, PrincipalType.SharePointGroup, PrincipalType.SecurityGroup, PrincipalType.DistributionList]}
           suggestionsLimit={2}
           resolveDelay={200}
-          placeholder={'Select a SharePoint principal (User or Group)'} />
+          placeholder={'Select a SharePoint principal (User or Group)'}
+          onGetErrorMessage={async (items: any[]) => {
+            if (!items || items.length < 2) {
+              return 'error';
+            }
+            return '';
+          }} />
+
 
         <PeoplePicker context={this.props.context}
           titleText="People Picker (local scoped)"
@@ -1120,13 +1244,10 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
           showSeconds={true}
           timeDisplayControlType={TimeDisplayControlType.Dropdown}
         />
-        <PrimaryButton text={'Change Date'} onClick={() => {
-          const date = this.state.dateTimeValue || new Date();
-          date.setMinutes(50);
-          date.setHours(11);
-          date.setSeconds(12);
+        <PrimaryButton text={'Clear Date'} onClick={() => {
+
           this.setState({
-            dateTimeValue: date
+            dateTimeValue: undefined
           });
         }} />
 
@@ -1136,6 +1257,25 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
         />
 
         <DateTimePicker label="DateTime Picker (disabled)" disabled={true} />
+
+        <br></br>
+        <b>Drag and Drop Files</b>
+        <DragDropFiles
+          dropEffect="copy"
+          enable={true}
+          onDrop={this._getDropFiles}
+          iconName="Upload"
+          labelMessage="My custom upload File"
+        >
+        <Placeholder iconName='BulkUpload'
+          iconText='Drag files or folder with files here...'
+          description={defaultClassNames => <span className={defaultClassNames}>Drag files or folder with files here...</span>}
+          buttonLabel='Configure'
+          hideButton={this.props.displayMode === DisplayMode.Read}
+          onConfigure={this._onConfigure} />
+        </DragDropFiles>
+        <br></br>
+
 
         <ListView items={this.state.items}
           viewFields={viewFields}
@@ -1237,6 +1377,19 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
                 <FileTypeIcon type={IconType.image} size={this.state.imgSize} />
               </div>
 
+
+              <div className="ms-font-m">Site picker tester:
+              <SitePicker
+                context={this.props.context}
+                label={'select sites'}
+                mode={'site'}
+                allowSearch={true}
+                multiSelect={false}
+                onChange={(sites) => { console.log(sites); }}
+                placeholder={'Select sites'}
+                searchPlaceholder={'Filter sites'} />
+              </div>
+
               <div className="ms-font-m">List picker tester:
                 <ListPicker context={this.props.context}
                   label="Select your list(s)"
@@ -1254,6 +1407,7 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
                   columnInternalName="Title"
                   keyColumnInternalName="Id"
                   filter={"Title eq 'SPFx'"}
+                  orderBy={'Title desc'}
                   itemLimit={5}
                   context={this.props.context}
                   placeholder={'Select list items'}
@@ -1439,20 +1593,21 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             //accepts={[".gif", ".jpg", ".jpeg", ".bmp", ".dib", ".tif", ".tiff", ".ico", ".png", ".jxr", ".svg"]}
             buttonLabel="Add File"
 
-            buttonIconProps={{iconName: 'Add', styles:{root:{fontSize: 42}}}}
+            buttonIconProps={{ iconName: 'Add', styles: { root: { fontSize: 42 } } }}
             onSave={this._onFilePickerSave}
-            onChange={(filePickerResult: IFilePickerResult) => { console.log(filePickerResult.fileName); }}
+            onChange={(filePickerResult: IFilePickerResult[]) => { console.log(filePickerResult); }}
             context={this.props.context}
             hideRecentTab={false}
+            includePageLibraries={true}
           />
           {
             this.state.filePickerResult &&
             <div>
               <div>
-                FileName: {this.state.filePickerResult.fileName}
+                FileName: {this.state.filePickerResult[0].fileName}
               </div>
               <div>
-                File size: {this.state.filePickerResult.fileSize}
+                File size: {this.state.filePickerResult[0].fileSize}
               </div>
             </div>
           }
@@ -1466,7 +1621,7 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             buttonLabel="Upload image"
             buttonIcon="FileImage"
             onSave={this._onFilePickerSave}
-            onChange={(filePickerResult: IFilePickerResult) => { console.log(filePickerResult.fileName); }}
+            onChange={(filePickerResult: IFilePickerResult[]) => { console.log(filePickerResult); }}
             context={this.props.context}
             hideRecentTab={false}
             renderCustomUploadTabContent={() => (
@@ -1518,6 +1673,8 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             }}
             onSelect={this._onFolderSelect}
             canCreateFolders={true}
+            orderby='Name' //'ListItemAllFields/Created'
+            orderAscending={true}
           />
         </div>
 
@@ -1528,13 +1685,14 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             selectionMode={TreeViewSelectionMode.Multiple}
             showCheckboxes={true}
             treeItemActionsDisplayMode={TreeItemActionsDisplayMode.ContextualMenu}
-            defaultSelectedKeys={['gc1', 'gc3']}
+            defaultSelectedKeys={this.state.treeViewSelectedKeys}
             onExpandCollapse={this.onExpandCollapseTree}
             onSelect={this.onItemSelected}
             defaultExpandedChildren={true}
           //expandToSelected={true}
           // onRenderItem={this.renderCustomTreeItem}
           />
+          <PrimaryButton onClick={() => { this.setState({ treeViewSelectedKeys: [] }); }}>Clear selection</PrimaryButton>
 
         </div>
 
@@ -1647,7 +1805,7 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             title: "Card 6",
             size: WidgetSize.Single,
             link: linkExample,
-          },]} />
+          }]} />
         <Toolbar actionGroups={{
           'group1': {
             'action1': {
@@ -1662,6 +1820,86 @@ export default class ControlsTest extends React.Component<IControlsTestProps, IC
             }
           }
         }} />
+
+        <div>
+          <h3>Animated Dialogs</h3>
+
+          {/* Multiple elements added only for demo - can be controlled with fewer elements */}
+
+          <PrimaryButton text='Show animated dialog' onClick={() => { this.setState({ showAnimatedDialog: true }); }} />
+          {/* Normal animated dialog */}
+          <AnimatedDialog
+            hidden={!this.state.showAnimatedDialog}
+            onDismiss={() => { this.setState({ showAnimatedDialog: false }); }}
+            dialogContentProps={animatedDialogContentProps}
+            modalProps={animatedModalProps}
+          >
+            <DialogFooter>
+              <PrimaryButton onClick={() => { this.setState({ showAnimatedDialog: false }); }} text="Yes" />
+              <DefaultButton onClick={() => { this.setState({ showAnimatedDialog: false }); }} text="No" />
+            </DialogFooter>
+          </AnimatedDialog>
+          <br />
+          <br />
+
+          <PrimaryButton text='Show animated dialog with icon' onClick={() => { this.setState({ showCustomisedAnimatedDialog: true }); }} />
+          {/* Animated dialog with icon */}
+          <AnimatedDialog
+            hidden={!this.state.showCustomisedAnimatedDialog}
+            onDismiss={() => { this.setState({ showCustomisedAnimatedDialog: false }); }}
+            dialogContentProps={customizedAnimatedDialogContentProps}
+            modalProps={customizedAnimatedModalProps}
+            dialogAnimationInType='fadeInDown'
+            dialogAnimationOutType='fadeOutDown'
+            iconName='UnknownSolid'
+            iconAnimationType='zoomInDown'
+            showAnimatedDialogFooter={true}
+            okButtonText="Yes"
+            cancelButtonText="No"
+            onOkClick={() => timeout(1500)}
+            onSuccess={() => {
+              this.setState({ showCustomisedAnimatedDialog: false });
+              this.setState({ showSuccessDialog: true });
+            }}
+            onError={() => {
+              this.setState({ showCustomisedAnimatedDialog: false });
+              this.setState({ showErrorDialog: true });
+            }}>
+            <div className={styles.dialogContent}>
+              <span>Do you like the animated dialog?</span>
+            </div>
+          </AnimatedDialog>
+
+          {/* Success animated dialog */}
+          <AnimatedDialog
+            hidden={!this.state.showSuccessDialog}
+            onDismiss={() => { this.setState({ showSuccessDialog: false }); }}
+            dialogContentProps={successDialogContentProps}
+            modalProps={customizedAnimatedModalProps}
+            iconName='CompletedSolid'
+          >
+            <div className={styles.dialogContent}><span>Thank you.</span></div>
+            <div className={styles.dialogFooter}>
+              <PrimaryButton onClick={() => { this.setState({ showSuccessDialog: false }); }} text="OK" >
+              </PrimaryButton>
+            </div>
+          </AnimatedDialog>
+
+          {/* Error animated dialog */}
+          <AnimatedDialog
+            hidden={!this.state.showErrorDialog}
+            onDismiss={() => { this.setState({ showErrorDialog: false }); }}
+            dialogContentProps={errorDialogContentProps}
+            modalProps={customizedAnimatedModalProps}
+            iconName='StatusErrorFull'
+          >
+            <div className={styles.dialogContent}><span>Ther was an error.</span></div>
+            <div className={styles.dialogFooter}>
+              <PrimaryButton onClick={() => { this.setState({ showErrorDialog: false }); }} text="OK" >
+              </PrimaryButton>
+            </div>
+          </AnimatedDialog>
+        </div>
 
       </div>
     );

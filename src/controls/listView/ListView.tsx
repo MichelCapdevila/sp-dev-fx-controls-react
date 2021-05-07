@@ -1,20 +1,22 @@
 import * as React from 'react';
-import styles from './ListView.DragDrop.module.scss';
+
 import { ScrollablePane, ScrollbarVisibility } from 'office-ui-fabric-react/lib/ScrollablePane';
 import { Sticky, StickyPositionType } from 'office-ui-fabric-react/lib/Sticky';
 import { IRenderFunction } from 'office-ui-fabric-react/lib/Utilities';
 import { mergeStyleSets } from 'office-ui-fabric-react/lib/Styling';
 import { DetailsList, DetailsListLayoutMode, Selection, SelectionMode, IGroup, IDetailsHeaderProps } from 'office-ui-fabric-react/lib/DetailsList';
 import { IListViewProps, IListViewState, IViewField, IGrouping, GroupOrder } from './IListView';
-import { IColumn, IGroupRenderProps } from 'office-ui-fabric-react/lib/components/DetailsList';
+import { ConstrainMode, IColumn, IDetailsList, IGroupRenderProps } from 'office-ui-fabric-react/lib/components/DetailsList';
 import { findIndex, has, sortBy, isEqual, cloneDeep } from '@microsoft/sp-lodash-subset';
 import { FileTypeIcon, IconType } from '../fileTypeIcon/index';
 import * as strings from 'ControlStrings';
 import { IGroupsItems } from './IListView';
 import * as telemetry from '../../common/telemetry';
-import { Icon } from 'office-ui-fabric-react/lib/Icon';
+import { DragDropFiles } from "../dragDropFiles";
 
 import filter from 'lodash/filter';
+import omit from 'lodash/omit';
+import functions from 'lodash/functions';
 import { SearchBox } from 'office-ui-fabric-react/lib/SearchBox';
 import { Guid } from '@microsoft/sp-core-library';
 
@@ -56,8 +58,6 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
   private originalItems: any[];
   private originalGroups: IGroup[];
   private originalColumns: IColumn[];
-  private dragCounter = 0;
-  private dropRef = React.createRef<HTMLDivElement>();
 
   constructor(props: IListViewProps) {
     super(props);
@@ -72,9 +72,7 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
 
     // Initialize state
     this.state = {
-      items: [],
-      filterValue: this.props.defaultFilter,
-      dragStatus: false
+      filterValue: this.props.defaultFilter
     };
 
     if (this.props.selection) {
@@ -90,18 +88,7 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
    * Lifecycle hook when component is mounted
    */
   public componentDidMount(): void {
-    this._processProperties();
-  }
-
-  public componentWillUnmount(): void {
-    const { dragDropFiles } = this.props;
-    if (dragDropFiles) {
-      let divDropArea = this.dropRef.current;
-      divDropArea.removeEventListener('dragenter', this.handleonDragEnter);
-      divDropArea.removeEventListener('dragleave', this.handleonDragLeave);
-      divDropArea.removeEventListener('dragover', this.handleonDragOver);
-      divDropArea.removeEventListener('drop', this.handleonDrop);
-    }
+    this._processProperties(this.props);
   }
 
   /**
@@ -109,29 +96,37 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
    * @param prevProps
    * @param prevState
    */
-  public componentDidUpdate(prevProps: IListViewProps, prevState: IListViewState): void {
+  public componentWillReceiveProps(nextProps: IListViewProps): void {
 
-    if (!isEqual(prevProps, this.props)) {
-      // select default items
-      this._setSelectedItems();
+    const modifiedNextProps = this._filterFunctions(nextProps);
+    const modifiedProps = this._filterFunctions(this.props);
+
+    if (!isEqual(modifiedProps, modifiedNextProps)) {
       // Reset the selected items
       if (this._selection) {
-        this._selection.setItems(this.props.items, true);
+        if (!isEqual(modifiedNextProps.items, modifiedProps.items)) {
+          this._selection.setItems(nextProps.items, true);
+        }
+        if (!isEqual(modifiedNextProps.defaultSelection, modifiedProps.defaultSelection)) {
+          this._selection.setAllSelected(false);
+          // select default items
+          this._setSelectedItems(nextProps);
+        }
       }
       // Process list view properties
-      this._processProperties();
+      this._processProperties(nextProps);
     }
   }
 
   /**
    * Select all the items that should be selected by default
    */
-  private _setSelectedItems(): void {
-    if (this.props.items &&
-      this.props.items.length > 0 &&
-      this.props.defaultSelection &&
-      this.props.defaultSelection.length > 0) {
-      for (const index of this.props.defaultSelection) {
+  private _setSelectedItems(props: IListViewProps): void {
+    if (props.items &&
+      props.items.length > 0 &&
+      props.defaultSelection &&
+      props.defaultSelection.length > 0) {
+      for (const index of props.defaultSelection) {
         if (index > -1) {
           this._selection.setIndexSelected(index, true, false);
         }
@@ -224,8 +219,8 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
   /**
    * Process all the component properties
    */
-  private _processProperties() {
-    const { dragDropFiles, items, iconFieldName, viewFields, groupByFields, showFilter } = this.props;
+  private _processProperties(props: IListViewProps) {
+    const { dragDropFiles, items, iconFieldName, viewFields, groupByFields, showFilter } = props;
 
     let tempState: IListViewState = cloneDeep(this.state);
     let columns: IColumn[] = null;
@@ -250,14 +245,16 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
     // Add the columns to the temporary state
     tempState.columns = columns;
 
-    // Add grouping to the list view
-    const grouping = this._getGroups(tempState.items, groupByFields);
-    if (grouping.groups.length > 0) {
-      tempState.groups = grouping.groups;
-      // Update the items
-      tempState.items = grouping.items;
-    } else {
-      tempState.groups = null;
+    if (tempState.items) {
+      // Add grouping to the list view
+      const grouping = this._getGroups(tempState.items, groupByFields);
+      if (grouping.groups.length > 0) {
+        tempState.groups = grouping.groups;
+        // Update the items
+        tempState.items = grouping.items;
+      } else {
+        tempState.groups = null;
+      }
     }
 
     // Store the original items and groups objects
@@ -275,15 +272,6 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
     } else {
       // Update the current component state with the new values
       this.setState(tempState);
-    }
-
-    // Add EventListeners for drag zone area
-    if (dragDropFiles) {
-      let divDropArea = this.dropRef.current;
-      divDropArea.addEventListener('dragenter', this.handleonDragEnter);
-      divDropArea.addEventListener('dragleave', this.handleonDragLeave);
-      divDropArea.addEventListener('dragover', this.handleonDragOver);
-      divDropArea.addEventListener('drop', this.handleonDrop);
     }
   }
 
@@ -472,6 +460,9 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
    * @param descending
    */
   private _sortItems(items: any[], columnName: string, descending = false): any[] {
+    if (this.props.sortItems) {
+      return this.props.sortItems(items, columnName, descending);
+    }
     // Sort the items
     const ascItems = sortBy(items, [columnName]);
     const sortedItems = descending ? ascItems.reverse() : ascItems;
@@ -550,52 +541,17 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
     return result;
   }
 
-  /**
-   * Stop listeners from onDragOver event.
-   * @param e
-   */
-  private handleonDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  /**
-   * Stop listeners from onDragEnter event, enable drag and drop view.
-   * @param e
-   */
-  private handleonDragEnter = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    this.dragCounter++;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-      this.setState({ dragStatus: true });
+  private _filterFunctions(p: IListViewProps) {
+    const modifiedProps = omit(p, functions(p));
+    if (modifiedProps.items) {
+      modifiedProps.items = modifiedProps.items.map(i => omit(i, functions(i)));
     }
-  }
-  /**
-   * Stop listeners from ondragenter event, disable drag and drop view.
-   * @param e
-   */
-  private handleonDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    this.dragCounter--;
-    if (this.dragCounter === 0) {
-      this.setState({ dragStatus: false });
+    if (modifiedProps.viewFields) {
+      modifiedProps.viewFields = modifiedProps.viewFields.map(vf => omit(vf, functions(vf)) as IViewField);
     }
+    return modifiedProps;
   }
-  /**
-  * Stop listeners from onDrop event and load files to property onDrop.
-  * @param e
-  */
-  private handleonDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    this.setState({ dragStatus: false });
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      this.props.onDrop(e.dataTransfer.files);
-      e.dataTransfer.clearData();
-      this.dragCounter = 0;
-    }
-  }
+
   /**
   * Custom render of header
   * @param props
@@ -605,13 +561,18 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
     if (!props) {
       return null;
     }
-    return (
-      <Sticky stickyPosition={StickyPositionType.Header} isScrollSynced>
-        {defaultRender!({
-          ...props,
-        })}
-      </Sticky>
-    );
+
+    if (this.props.stickyHeader) {
+      return (
+        <Sticky stickyPosition={StickyPositionType.Header} isScrollSynced>
+          {defaultRender!({
+            ...props,
+          })}
+        </Sticky>
+      );
+    }
+
+    return defaultRender!(props);
   }
   /**
    * Default React component render method
@@ -620,7 +581,7 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
     let groupProps: IGroupRenderProps = {};
 
     let { showFilter, filterPlaceHolder, dragDropFiles, stickyHeader, selectionMode, compact } = this.props;
-    let { filterValue, items, dragStatus, columns, groups } = this.state;
+    let { filterValue, items, columns, groups } = this.state;
 
     // Check if selection mode is single selection,
     // if that is the case, disable the selection on grouping headers
@@ -635,23 +596,22 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
 
     return (
       <ListViewWrapper stickyHeader={!!this.props.stickyHeader}>
-        <div className={styles.DragDropArea}
-          ref={this.dropRef}>
-          {(dragStatus && dragDropFiles) &&
-            <div className={styles.DragDropAreaBorder}>
-              <div className={styles.DragDropAreaZone}>
-                <Icon iconName="Download" className="ms-IconExample" />
-                <div>{strings.UploadFileHeader}</div>
-              </div>
-            </div>
-          }
+        <DragDropFiles enable={dragDropFiles}
+          iconName="BulkUpload"
+          labelMessage={strings.UploadFileHeader}
+          onDrop={
+            dragDropFiles ?
+              (files) => {
+                this.props.onDrop(files);
+              } : []
+          } >
           {
             showFilter &&
             <SearchBoxWrapper stickyHeader={!!this.props.stickyHeader}>
-              <SearchBox placeholder={filterPlaceHolder || strings.ListViewFilterLabel} onSearch={this._updateFilterValue} onChange={this._updateFilterValue} value={filterValue} />
+              <SearchBox placeholder={filterPlaceHolder || strings.ListViewFilterLabel} onSearch={this._updateFilterValue} onChange={(e, value) => this._updateFilterValue(value)} value={filterValue} />
             </SearchBoxWrapper>
           }
-          <DetailsList
+          {!!items && <DetailsList
             key="ListViewControl"
             items={items}
             columns={columns}
@@ -661,11 +621,16 @@ export class ListView extends React.Component<IListViewProps, IListViewState> {
             selection={this._selection}
             layoutMode={DetailsListLayoutMode.justified}
             compact={compact}
-            setKey="ListViewControl"
+            setKey='ListViewControl'
             groupProps={groupProps}
             onRenderDetailsHeader={this._onRenderDetailsHeader}
-          />
-        </div>
+            componentRef={ref => {
+              if (ref) {
+                ref.forceUpdate();
+              }
+            }}
+          />}
+        </DragDropFiles>
       </ListViewWrapper>
     );
   }

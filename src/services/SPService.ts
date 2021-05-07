@@ -1,16 +1,40 @@
 import { ISPService, ILibsOptions, LibsOrderBy } from "./ISPService";
-import { ISPLists } from "../common/SPEntities";
-import { WebPartContext } from "@microsoft/sp-webpart-base";
-import { ExtensionContext } from "@microsoft/sp-extension-base";
+import { ISPField, ISPLists } from "../common/SPEntities";
+import { BaseComponentContext } from '@microsoft/sp-component-base';
 import { SPHttpClient, ISPHttpClientOptions } from "@microsoft/sp-http";
 
 export default class SPService implements ISPService {
 
   private _webAbsoluteUrl: string;
 
-  constructor(private _context: WebPartContext | ExtensionContext, webAbsoluteUrl?: string) {
+  constructor(private _context: BaseComponentContext, webAbsoluteUrl?: string) {
     this._webAbsoluteUrl = webAbsoluteUrl ? webAbsoluteUrl : this._context.pageContext.web.absoluteUrl;
-   }
+  }
+
+  public getField = async (listId: string, internalColumnName: string, webUrl?: string): Promise<ISPField | undefined> => {
+    try {
+      const webAbsoluteUrl = !webUrl ? this._webAbsoluteUrl : webUrl;
+      const apiUrl = `${webAbsoluteUrl}/_api/web/lists('${listId}')/fields/getByInternalNameOrTitle('${internalColumnName}')`;
+      const data = await this._context.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
+      if (data.ok) {
+        const results = await data.json();
+        if (results) {
+          const field = results as ISPField;
+
+          if (field.TypeAsString === 'Calculated') {
+            const resultTypeRegEx = /ResultType="(\w+)"/gmi;
+            const resultTypeMatch = resultTypeRegEx.exec(field.SchemaXml);
+
+            field.ResultType = resultTypeMatch[1];
+          }
+
+          return field;
+        }
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
 
   /**
    * Get lists or libraries
@@ -50,15 +74,38 @@ export default class SPService implements ISPService {
   /**
    * Get List Items
    */
-  public async getListItems(filterText: string, listId: string, internalColumnName: string, keyInternalColumnName?: string, webUrl?: string, filter?: string, substringSearch: boolean = false ): Promise<any[]> {
+  public async getListItems(filterText: string, listId: string, internalColumnName: string, field: ISPField | undefined, keyInternalColumnName?: string, webUrl?: string, filter?: string, substringSearch: boolean = false, orderBy?: string): Promise<any[]> {
     let returnItems: any[];
-    const filterStr = substringSearch ? // JJ - 20200613 - find by substring as an option
-                        `substringof('${encodeURIComponent(filterText.replace("'","''"))}',${internalColumnName})${filter ? ' and ' + filter : ''}`
-                        : `startswith(${internalColumnName},'${encodeURIComponent(filterText.replace("'","''"))}')${filter ? ' and ' + filter : ''}`; //string = filterList  ? `and ${filterList}` : '';
+    const webAbsoluteUrl = !webUrl ? this._webAbsoluteUrl : webUrl;
+    let apiUrl = '';
+    let isPost = false;
+
+    if (field && field.TypeAsString === 'Calculated') { // for calculated fields we need to use CAML query
+      let orderByStr = '';
+
+      if (orderBy) {
+        const orderByParts = orderBy.split(' ');
+        let ascStr = '';
+        if (orderByParts[1] && orderByParts[1].toLowerCase() === 'desc') {
+          ascStr = `Ascending="FALSE"`;
+        }
+        orderByStr = `<OrderBy><FieldRef Name="${orderByParts[0]}" ${ascStr} />`;
+      }
+
+      const camlQuery = `<View><Query><Where>${substringSearch ? '<Contains>' : '<BeginsWith>'}<FieldRef Name="${internalColumnName}"/><Value Type="${field.ResultType}">${filterText}</Value>${substringSearch ? '</Contains>' : '</BeginsWith>'}</Where>${orderByStr}</Query></View>`;
+
+      apiUrl = `${webAbsoluteUrl}/_api/web/lists('${listId}')/GetItems(query=@v1)?$select=${keyInternalColumnName || 'Id'},${internalColumnName}&@v1=${JSON.stringify({ ViewXml: camlQuery })}`;
+      isPost = true;
+    }
+    else {
+      const filterStr = substringSearch ? // JJ - 20200613 - find by substring as an option
+        `substringof('${encodeURIComponent(filterText.replace("'", "''"))}',${internalColumnName})${filter ? ' and ' + filter : ''}`
+        : `startswith(${internalColumnName},'${encodeURIComponent(filterText.replace("'", "''"))}')${filter ? ' and ' + filter : ''}`; //string = filterList  ? `and ${filterList}` : '';
+      apiUrl = `${webAbsoluteUrl}/_api/web/lists('${listId}')/items?$select=${keyInternalColumnName || 'Id'},${internalColumnName}&$filter=${filterStr}&$orderby=${orderBy}`;
+    }
+
     try {
-      const webAbsoluteUrl = !webUrl ? this._webAbsoluteUrl : webUrl;
-      const apiUrl = `${webAbsoluteUrl}/_api/web/lists('${listId}')/items?$select=${keyInternalColumnName || 'Id'},${internalColumnName}&$filter=${filterStr}`;
-      const data = await this._context.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
+      const data = isPost ? await this._context.spHttpClient.post(apiUrl, SPHttpClient.configurations.v1, {}) : await this._context.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
       if (data.ok) {
         const results = await data.json();
         if (results && results.value && results.value.length > 0) {
@@ -74,16 +121,16 @@ export default class SPService implements ISPService {
 
 
 
-     /**
-   * Gets list items for list item picker
-   * @param filterText
-   * @param listId
-   * @param internalColumnName
-   * @param [keyInternalColumnName]
-   * @param [webUrl]
-   * @param [filterList]
-   * @returns list items for list item picker
-   */
+  /**
+* Gets list items for list item picker
+* @param filterText
+* @param listId
+* @param internalColumnName
+* @param [keyInternalColumnName]
+* @param [webUrl]
+* @param [filterList]
+* @returns list items for list item picker
+*/
   public async getListItemsForListItemPicker(
     filterText: string,
     listId: string,
@@ -199,7 +246,9 @@ export default class SPService implements ISPService {
   public async addAttachment(listId: string, itemId: number, fileName: string, file: File, webUrl?: string): Promise<void> {
     try {
       // Remove special characters in FileName
-      fileName = fileName.replace(/[^\.\w\s\&\-]/gi, '');
+      //Updating the escape characters for filename as per the doucmentations 
+      //https://support.microsoft.com/en-us/kb/905231
+      fileName = fileName.replace(/[\~\#\%\&\*\{\}\\\:\<\>\?\/\+\|]/gi, '');
       // Check if attachment exists
       const fileExists = await this.checkAttachmentExists(listId, itemId, fileName, webUrl);
       // Delete attachment if it exists

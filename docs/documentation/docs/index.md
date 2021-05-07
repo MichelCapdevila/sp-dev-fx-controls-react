@@ -5,10 +5,16 @@ This repository provides developers with a set of reusable React controls that c
 ![Placeholder example](./assets/placeholder-intro.png)
 
 !!! attention
-    In order to migrate to `v2` it is advicded to follow this guide: [Migrating from V1](./guides/migrate-from-v1).
+    In order to migrate to `v2` it is adviced to follow this guide: [Migrating from V1](./guides/migrate-from-v1).
 
-!!! attention
-    `v2` version of the controls project has a minimal dependency on SharePoint Framework version `1.11.0`. `v1` has a minimal dependency on SharePoint Framework version `1.3.0`. Be aware that the controls might not work in solutions you are building for SharePoint 2016 with Feature Pack 2 on-premises. As for SharePoint 2016 with Feature Pack 2 version `1.1.0` of the SharePoint framework is the only version that can be used. SharePoint 2019 on-premises uses SharePoint framework `v1.4.0` and therefore should be fine to use with these controls.
+## Library Versions
+Currently there are 3 active versions of the controls. Please, reference the table below to see what version to use in your project.
+
+| Version | SPFx minimal dependency | Fluent UI (Office UI Fabric React) version | SharePoint Version | Comments |
+| ------- | ----------------------- | ------------------------------------------ | ------------------ | -------- |
+| `v3` | `1.12.0` | `7.156.0` | Online | The most current, actively maintained version of the library. |
+| `v2` | `1.11.0` | `6.214.0` | Online | The version will be deprecated in **May/June timeframe**.<br>We strongly recommend to update to SPFx `1.12` and `v3` of Controls. |
+| `v1` | `1.3.0` | `5.131.0` | On-Prem | The version is maintained for SharePoint On-Prem 2016 and 2019 implementations. Be aware that the controls might not work in solutions you're building for on-premises. As for on-premises solutions version `1.1.0` will get used. |
 
 ## Getting started
 
@@ -52,12 +58,15 @@ telemetry.optOut();
 
 The following controls are currently available:
 
+- [AccessibleAccordion](./controls/AccessibleAccordion) (Control to render an accordion. React `AccessibleAccourdion`-based implementation)
 - [Accordion](./controls/Accordion) (Control to render an accordion)
+- [AnimatedDialog](./controls/AnimatedDialog) (Animated dialog control)
 - [Carousel](./controls/Carousel) (Control displays children elements with 'previous/next element' options)
 - [Charts](./controls/ChartControl) (makes it easy to integrate [Chart.js](https://www.chartjs.org/) charts into web part)
 - [ComboBoxListItemPicker](./controls/ComboBoxListItemPicker) (allows to select one or more items from a list)
 - [Dashboard](./controls/Dashboard) (Control to render dashboard in Microsoft Teams)
 - [DateTimePicker](./controls/DateTimePicker) (DateTime Picker)
+- [DragDropFiles](./controls/DragDropFiles) (Allow drag and drop of files in selected areas)
 - [FieldCollectionData](./controls/FieldCollectionData) (control gives you the ability to insert a list / collection data which can be used in your web part / application customizer)
 - [FilePicker](./controls/FilePicker) (control that allows to browse and select a file from various places)
 - [FileTypeIcon](./controls/FileTypeIcon) (Control that shows the icon of a specified file path or application)
@@ -71,12 +80,16 @@ The following controls are currently available:
 - [ListPicker](./controls/ListPicker) (allows to select one or multiple available lists/libraries of the current site)
 - [ListView](./controls/ListView) (List view control)
 - [Map](./controls/Map) (renders a map in a web part)
+- [MyTeams](./controls/MyTeams) (My Teams)
 - [PeoplePicker](./controls/PeoplePicker) (People Picker)
 - [Placeholder](./controls/Placeholder) (shows an initial placeholder if the web part has to be configured)
 - [Progress](./controls/Progress) (shows progress of multiple SEQUENTIALLY executed actions)
-- [SiteBreadcrumb](./controls/SiteBreadcrumb) (Breadcrumb control)
 - [SecurityTrimmedControl](./controls/SecurityTrimmedControl) (intended to be used when you want to show or hide components based on the user permissions)
+- [SiteBreadcrumb](./controls/SiteBreadcrumb) (Breadcrumb control)
+- [SitePicker](./controls/SitePicker) (Site Picker control)
 - [TaxonomyPicker](./controls/TaxonomyPicker) (Taxonomy Picker)
+- [TeamChannelPicker](./controls/TeamChannelPicker) (Team Channel Picker)
+- [TeamPicker](./controls/TeamPicker) (Team Picker)
 - [Toolbar](./controls/Toolbar) (Control to render Toolbar in Microsoft Teams)
 - [TreeView](./controls/TreeView) (Tree View)
 - [WebPartTitle](./controls/WebPartTitle) (Customizable web part title control)

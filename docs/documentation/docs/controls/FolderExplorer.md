@@ -50,7 +50,7 @@ The `FolderExplorer` control can be configured with the following properties:
 
 | Property | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| context | WebPartContext \| ExtensionContext | yes | The context object of the SPFx loaded webpart or customizer. |
+| context | BaseComponentContext | yes | The context object of the SPFx loaded webpart or customizer. |
 | siteAbsoluteUrl | string | no | The absolute url of the target site. Only required if not the current site. |
 | rootFolder | IFolder | yes | The lowest level folder that can be explored. This can be the root folder of a library. If site url is provided, it will allow the user to select a document library |
 | defaultFolder | IFolder | yes | The default folder to be explored. |
@@ -59,5 +59,7 @@ The `FolderExplorer` control can be configured with the following properties:
 | initialBreadcrumbItems | IBreadcrumbItem | no | Additional items to be added to the beginning of the breadcrumb. |
 | hiddenFilterBox | boolean | no | Hide the filter box |
 | onSelect | (folder: IFolder): void | no | Callback function called after a folder is selected. |
+| orderby | string | no | The name of the folder field on which to sort. Name will be used as default. Other examples: Name, TimeCreated, TimeLastModified |
+| orderAscending | boolean | no | If set to true, results will be sorted in ascending order. Otherwise, descending will be used as default |
 
 ![](https://telemetry.sharepointpnp.com/sp-dev-fx-controls-react/wiki/controls/FolderExplorer)

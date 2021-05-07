@@ -9,12 +9,12 @@ export enum GroupOrder {
 }
 
 export interface IListViewProps {
-  /**  
-  * Specify if drag and drop option is selected. 
+  /**
+  * Specify if drag and drop option is selected.
   **/
   dragDropFiles?: boolean;
-  /**  
-  * Handler to return the files from drag and drop. 
+  /**
+  * Handler to return the files from drag and drop.
   **/
   onDrop?: any;
   /**
@@ -24,7 +24,7 @@ export interface IListViewProps {
   /**
    * The items to render.
    */
-  items: any[];
+  items?: any[];
   /**
    * The fields you want to view in your list view
    */
@@ -68,6 +68,11 @@ export interface IListViewProps {
    * Set to false by default
    */
   stickyHeader?: boolean;
+  /**
+   * Custom sorting function.
+   * @returns sorted collection of items
+   */
+  sortItems?: (items: any[], columnName: string, descending: boolean) => any[];
 }
 
 export interface IListViewState {
@@ -78,7 +83,7 @@ export interface IListViewState {
   /**
    * The items to render.
    */
-  items: any[];
+  items?: any[];
   /**
    * Given column defitions.
    * If none are provided, default columns will be created based on the item's properties.
@@ -86,8 +91,6 @@ export interface IListViewState {
   columns?: IColumn[];
 
   groups?: IGroup[];
-
-  dragStatus?: boolean;
 
 }
 

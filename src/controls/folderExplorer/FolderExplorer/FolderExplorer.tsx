@@ -52,7 +52,7 @@ export class FolderExplorer extends React.Component<IFolderExplorerProps, IFolde
         <div style={{ opacity: this.state.foldersLoading ? 0.8 : 1, }}>
           {!this.props.hiddenFilterBox && this._allFolders.length > 0 &&
             <div>
-              <SearchBox className={styles.filterBox} placeholder={strings.FolderFilterBoxPlaceholder} onSearch={this._onChangeFilterText} onChange={this._onChangeFilterText} />
+              <SearchBox className={styles.filterBox} placeholder={strings.FolderFilterBoxPlaceholder} onSearch={this._onChangeFilterText} onChange={(e, value) =>this._onChangeFilterText(value)} />
             </div>
           }
           {this.state.folders.length === 0 &&
@@ -166,7 +166,9 @@ export class FolderExplorer extends React.Component<IFolderExplorerProps, IFolde
         }
       } else {
         // library/folder level, get folders
-        this._allFolders = await this._spService.GetFolders(siteAbsoluteUrl, folder.ServerRelativeUrl);
+        const orderBy = this.props.orderby !== undefined ? this.props.orderby : 'Name';
+        const orderAscending = this.props.orderAscending !== undefined ? this.props.orderAscending : true;
+        this._allFolders = await this._spService.GetFolders(siteAbsoluteUrl, folder.ServerRelativeUrl, orderBy, orderAscending);
       }
       this.setState({ folders: this._allFolders, selectedFolder: folder, foldersLoading: false });
 
